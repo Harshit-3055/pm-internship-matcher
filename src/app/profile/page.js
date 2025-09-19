@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getSessionSafely, signOutSafely, handleAuthError } from "@/lib/authUtils";
 import { useRouter } from "next/navigation";
 import { 
   User, 
@@ -126,30 +127,23 @@ export default function Profile() {
     const verify = async () => {
       try {
         console.log("Starting authentication check...");
-        const { data, error } = await supabase.auth.getUser();
+        const user = await getSessionSafely();
         
         if (!isMounted) {
           console.log("Component unmounted, aborting");
           return;
         }
         
-        if (error) {
-          console.error("Auth error:", error);
-          setChecking(false);
-          router.replace("/login");
-          return;
-        }
-        
-        if (!data?.user) {
+        if (!user) {
           console.log("No user found, redirecting to login");
           setChecking(false);
-          router.replace("/login");
+          router.replace("/");
           return;
         }
         
-        console.log("User found:", data.user.email);
-        setUser(data.user);
-        setFormData(prev => ({ ...prev, email: data.user.email }));
+        console.log("User found:", user.email);
+        setUser(user);
+        setFormData(prev => ({ ...prev, email: user.email }));
         
         // Try to load existing profile data (optional)
         try {
@@ -157,7 +151,7 @@ export default function Profile() {
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
             .select("*")
-            .eq("id", data.user.id)
+            .eq("id", user.id)
             .single();
           
           if (profileData && !profileError) {
@@ -167,7 +161,7 @@ export default function Profile() {
               dateOfBirth: profileData.date_of_birth || "",
               gender: profileData.gender || "",
               phone: profileData.phone || "",
-              email: profileData.email || data.user.email,
+              email: profileData.email || user.email,
               highestQualification: profileData.highest_qualification || "",
               currentDegree: profileData.current_degree || "",
               yearOfStudy: profileData.year_of_study || "",
@@ -201,7 +195,7 @@ export default function Profile() {
         console.error("Unexpected error in verify function:", error);
         if (isMounted) {
           setChecking(false);
-          router.replace("/login");
+          router.replace("/");
         }
       }
     };
@@ -212,8 +206,8 @@ export default function Profile() {
       if (!isMounted) return;
       console.log("Auth state changed:", _event, session ? "session exists" : "no session");
       if (!session) {
-        console.log("Session lost, redirecting to login");
-        router.replace("/login");
+        console.log("Session lost, redirecting to home");
+        router.replace("/");
       }
     });
     
@@ -1108,7 +1102,7 @@ export default function Profile() {
           </div>
           <button
           onClick={async () => {
-            await supabase.auth.signOut();
+            await signOutSafely();
               router.replace("/");
           }}
             className="bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg"

@@ -1,9 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Briefcase } from "lucide-react";
+import LoginModal from "./LoginModal";
+import SignupModal from "./SignupModal";
 
-export default function HomePage({ onSignIn, onSignUp }) {
+export default function HomePage() {
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
   const PM_PHOTO_URL = "https://www.pmindia.gov.in/wp-content/uploads/2025/12/01.jpg";
   const GOVT_LOGO_URL = "https://www.logopeople.in/wp-content/uploads/2013/01/government-of-india.jpg";
   return (
@@ -38,8 +42,8 @@ export default function HomePage({ onSignIn, onSignUp }) {
             <span className="text-xl font-bold text-gray-900">PM InternMatch</span>
           </div>
           <div className="space-x-4">
-            <button onClick={onSignIn} className="text-gray-600 hover:text-gray-900 font-medium">Sign In</button>
-            <button onClick={onSignUp} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">Get Started</button>
+            <button onClick={() => setShowLoginModal(true)} className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Sign In</button>
+            <button onClick={() => setShowSignupModal(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">Get Started</button>
           </div>
         </div>
       </nav>
@@ -76,7 +80,7 @@ export default function HomePage({ onSignIn, onSignUp }) {
             students with perfect internship opportunities based on skills, preferences, and career goals.
           </p>
           <div className="space-x-4">
-            <button onClick={onSignUp} className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg">Start Your Journey</button>
+            <button onClick={() => setShowSignupModal(true)} className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg">Start Your Journey</button>
             <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="bg-white text-indigo-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-colors border-2 border-indigo-600">Learn More</button>
           </div>
         </div>
@@ -258,8 +262,8 @@ export default function HomePage({ onSignIn, onSignUp }) {
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to Find Your Perfect Internship?</h2>
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">Join thousands of students who have already found their dream internships through our AI-powered platform.</p>
           <div className="space-x-4">
-            <button onClick={onSignUp} className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg">Register Now</button>
-            <button onClick={onSignIn} className="bg-white text-indigo-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-colors border-2 border-gray-200">Sign In</button>
+            <button onClick={() => setShowSignupModal(true)} className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg">Register Now</button>
+            <button onClick={() => setShowLoginModal(true)} className="bg-white text-indigo-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-colors border-2 border-gray-200">Sign In</button>
           </div>
         </div>
 
@@ -304,6 +308,25 @@ export default function HomePage({ onSignIn, onSignUp }) {
           </div>
         </footer>
       </div>
+      
+      {/* Modals */}
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSwitchToSignup={() => {
+          setShowLoginModal(false);
+          setShowSignupModal(true);
+        }}
+      />
+      
+      <SignupModal 
+        isOpen={showSignupModal}
+        onClose={() => setShowSignupModal(false)}
+        onSwitchToLogin={() => {
+          setShowSignupModal(false);
+          setShowLoginModal(true);
+        }}
+      />
     </div>
   );
 }
