@@ -223,7 +223,7 @@ export default function Profile() {
       clearTimeout(timeoutId);
       sub.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, checking]);
 
   // Load internships when user is authenticated
   useEffect(() => {
@@ -639,7 +639,7 @@ export default function Profile() {
             <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
               <span className="text-white text-sm">3</span>
             </div>
-            <span className="text-gray-700">You'll receive personalized recommendations</span>
+            <span className="text-gray-700">You&apos;ll receive personalized recommendations</span>
           </div>
         </div>
       </div>
@@ -675,14 +675,14 @@ export default function Profile() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               {isEditMode 
                 ? "Update your information to get better matches."
-                : "Let's get you matched with the perfect internship opportunity. Our AI will analyze your profile to find the best matches."
+                : "Let&apos;s get you matched with the perfect internship opportunity. Our AI will analyze your profile to find the best matches."
               }
             </p>
             <button
               onClick={nextStep}
               className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg"
             >
-              {isEditMode ? "✏️ Update Profile" : "👉 Let's Get You Matched with the Perfect Internship!"}
+              {isEditMode ? "✏️ Update Profile" : "👉 Let&apos;s Get You Matched with the Perfect Internship!"}
             </button>
           </div>
         );
@@ -778,8 +778,8 @@ export default function Profile() {
                   <option value="">Select Qualification</option>
                   <option value="high-school">High School</option>
                   <option value="diploma">Diploma</option>
-                  <option value="bachelor">Bachelor's Degree</option>
-                  <option value="master">Master's Degree</option>
+                  <option value="bachelor">Bachelor&apos;s Degree</option>
+                  <option value="master">Master&apos;s Degree</option>
                   <option value="phd">PhD</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">

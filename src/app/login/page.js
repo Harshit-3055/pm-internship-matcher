@@ -61,7 +61,7 @@ export default function Login() {
               {loading ? "Signing in..." : "Sign In"}
             </button>
             <div className="text-center text-sm text-gray-600 mt-2">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <button type="button" onClick={() => router.push("/signup")} className="text-indigo-600 font-semibold hover:underline">Create one</button>
             </div>
           </form>
