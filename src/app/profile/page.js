@@ -675,14 +675,14 @@ export default function Profile() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               {isEditMode 
                 ? "Update your information to get better matches."
-                : "Let&apos;s get you matched with the perfect internship opportunity. Our AI will analyze your profile to find the best matches."
+                : "Let's get you matched with the perfect internship opportunity. Our AI will analyze your profile to find the best matches."
               }
             </p>
             <button
               onClick={nextStep}
               className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg"
             >
-              {isEditMode ? "✏️ Update Profile" : "👉 Let&apos;s Get You Matched with the Perfect Internship!"}
+              {isEditMode ? "✏️ Update Profile" : "👉 Let's Get You Matched with the Perfect Internship!"}
             </button>
           </div>
         );
