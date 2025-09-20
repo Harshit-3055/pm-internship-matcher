@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getSessionSafely, signOutSafely, handleAuthError } from "@/lib/authUtils";
 import { useRouter } from "next/navigation";
@@ -95,7 +95,7 @@ export default function Profile() {
   ];
 
   // Load internships from Supabase
-  const loadInternships = async () => {
+  const loadInternships = useCallback(async () => {
     setLoadingInternships(true);
     try {
       const { data, error } = await supabase
@@ -113,10 +113,10 @@ export default function Profile() {
     } finally {
       setLoadingInternships(false);
     }
-  };
+  }, []);
 
   // Load my matches
-  const loadMyMatches = async () => {
+  const loadMyMatches = useCallback(async () => {
     if (!user) return;
     
     setLoadingMatches(true);
@@ -148,7 +148,7 @@ export default function Profile() {
     } finally {
       setLoadingMatches(false);
     }
-  };
+  }, [user]);
 
   // Generate new matches using AI
   const generateMatches = async () => {
@@ -364,7 +364,7 @@ export default function Profile() {
       loadInternships();
       loadMyMatches();
     }
-  }, [user]);
+  }, [user, loadInternships, loadMyMatches]);
 
   // Force re-render when matches change
   useEffect(() => {
@@ -788,7 +788,7 @@ export default function Profile() {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No matches yet</h3>
           <p className="text-gray-600 mb-6">
-            Complete your profile and click "Generate New Matches" to get AI-powered recommendations
+            Complete your profile and click &quot;Generate New Matches&quot; to get AI-powered recommendations
           </p>
           <button
             onClick={generateMatches}
