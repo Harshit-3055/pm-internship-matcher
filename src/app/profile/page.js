@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getSessionSafely, signOutSafely, handleAuthError } from "@/lib/authUtils";
 import { useRouter } from "next/navigation";
+import MatchCard from "@/components/MatchCard";
 import { 
   User, 
   GraduationCap, 
@@ -41,6 +42,10 @@ export default function Profile() {
   const [selectedSector, setSelectedSector] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [loadingInternships, setLoadingInternships] = useState(false);
+  const [myMatches, setMyMatches] = useState([]);
+  const [loadingMatches, setLoadingMatches] = useState(false);
+  const [matchGenerationStatus, setMatchGenerationStatus] = useState(null);
+  const [matchRenderKey, setMatchRenderKey] = useState(0);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -95,7 +100,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from("internships")
-        .select("*")
+        .select("id, company_name, role, skills_required, location, sector, capacity, created_at")
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -107,6 +112,140 @@ export default function Profile() {
       setMessage("Error loading internships: " + error.message);
     } finally {
       setLoadingInternships(false);
+    }
+  };
+
+  // Load my matches
+  const loadMyMatches = async () => {
+    if (!user) return;
+    
+    setLoadingMatches(true);
+    try {
+      const response = await fetch(`/api/matching?studentId=${user.id}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Transform the data to match the expected structure
+        const newMatches = (data.matches || []).map(match => ({
+          id: match.id || `match-${Date.now()}-${Math.random()}`,
+          match_score: match.match_score || 0,
+          match_reasons: match.match_reasons || [],
+          status: match.status || 'pending',
+          internship: match.internship
+        }));
+        
+        console.log('Loading existing matches:', newMatches);
+        console.log('Sample existing match structure:', newMatches[0]);
+        setMyMatches(newMatches);
+        console.log(`Loaded ${newMatches.length} existing matches`);
+      } else {
+        console.error("Error loading matches:", data.error);
+        setMyMatches([]);
+      }
+    } catch (error) {
+      console.error("Error loading matches:", error);
+      setMyMatches([]);
+    } finally {
+      setLoadingMatches(false);
+    }
+  };
+
+  // Generate new matches using AI
+  const generateMatches = async () => {
+    if (!user) return;
+    
+    setMatchGenerationStatus("generating");
+    setMessage(""); // Clear any previous messages
+    
+    try {
+      console.log('Generating matches for user:', user.id);
+      const response = await fetch('/api/matching', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: user.id,
+          action: 'generate_matches'
+        })
+      });
+      
+      const data = await response.json();
+      console.log('API response:', data);
+      
+      if (data.success) {
+        // Transform the data to match the expected structure
+        const newMatches = (data.matches || []).map(match => ({
+          id: match.id || `match-${Date.now()}-${Math.random()}`,
+          match_score: match.matchScore || match.match_score || 0,
+          match_reasons: match.matchReasons || match.match_reasons || [],
+          status: match.status || 'pending',
+          internship: match.internship
+        }));
+        
+        console.log('Setting new matches:', newMatches);
+        console.log('Sample match structure:', newMatches[0]);
+        setMyMatches(newMatches);
+        setMatchRenderKey(prev => prev + 1); // Force re-render
+        setMatchGenerationStatus("success");
+        setMessage(`Successfully generated ${newMatches.length} personalized matches! 🎉`);
+        setTimeout(() => {
+          setMatchGenerationStatus(null);
+          setMessage("");
+        }, 3000);
+      } else {
+        console.error('API error:', data.error);
+        setMessage("Error generating matches: " + data.error);
+        setMatchGenerationStatus("error");
+        setTimeout(() => {
+          setMatchGenerationStatus(null);
+          setMessage("");
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Error generating matches:", error);
+      setMessage("Error generating matches: " + error.message);
+      setMatchGenerationStatus("error");
+      setTimeout(() => {
+        setMatchGenerationStatus(null);
+        setMessage("");
+      }, 3000);
+    }
+  };
+
+  // Apply for an internship
+  const applyForInternship = async (match) => {
+    try {
+      const response = await fetch('/api/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: user.id,
+          internshipId: match.internship.id,
+          matchId: match.id
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the match status locally
+        setMyMatches(prev => 
+          prev.map(m => 
+            m.id === match.id 
+              ? { ...m, status: 'applied' }
+              : m
+          )
+        );
+        setMessage("Application submitted successfully! 🎉");
+      } else {
+        setMessage("Error submitting application: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error applying for internship:", error);
+      setMessage("Error submitting application. Please try again.");
     }
   };
 
@@ -219,12 +358,18 @@ export default function Profile() {
     };
   }, [router, checking]);
 
-  // Load internships when user is authenticated
+  // Load internships and matches when user is authenticated
   useEffect(() => {
     if (user) {
       loadInternships();
+      loadMyMatches();
     }
   }, [user]);
+
+  // Force re-render when matches change
+  useEffect(() => {
+    console.log('Matches updated:', myMatches.length);
+  }, [myMatches]);
 
   // Filter internships based on search and filters
   useEffect(() => {
@@ -545,19 +690,15 @@ export default function Profile() {
               </div>
 
               <div className="space-y-3">
-                {internship.location && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    <span>{internship.location}</span>
-                  </div>
-                )}
+                <div className="flex items-center text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  <span>{internship.location}</span>
+                </div>
                 
-                {internship.sector && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Briefcase className="w-4 h-4 mr-2" />
-                    <span>{internship.sector}</span>
-                  </div>
-                )}
+                <div className="flex items-center text-sm text-gray-600">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  <span>{internship.sector}</span>
+                </div>
 
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">Required Skills:</p>
@@ -586,12 +727,99 @@ export default function Profile() {
     </div>
   );
 
-  // Render my internships section (placeholder)
+  // Render my internships section with AI matches
   const renderMyInternships = () => (
-    <div className="text-center py-12">
-      <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">My Internships</h3>
-      <p className="text-gray-600">This section will show your matched and applied internships</p>
+    <div className="space-y-6">
+      {/* Header with AI matching controls */}
+      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 flex items-center">
+              <Calendar className="w-6 h-6 mr-2 text-purple-600" />
+              My AI-Matched Internships
+            </h3>
+            <p className="text-gray-600 mt-1">
+              Personalized matches based on your profile and preferences
+            </p>
+          </div>
+          <button
+            onClick={generateMatches}
+            disabled={matchGenerationStatus === "generating"}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              matchGenerationStatus === "generating"
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg"
+            }`}
+          >
+            {matchGenerationStatus === "generating" ? (
+              <div className="flex items-center">
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                Generating...
+              </div>
+            ) : (
+              "🤖 Generate New Matches"
+            )}
+          </button>
+        </div>
+
+        {/* Status messages */}
+        {matchGenerationStatus === "success" && (
+          <div className="bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            ✅ AI has generated new personalized matches for you!
+          </div>
+        )}
+        
+        {matchGenerationStatus === "error" && (
+          <div className="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            ❌ Error generating matches. Please try again.
+          </div>
+        )}
+      </div>
+
+      {/* Matches display */}
+      {loadingMatches ? (
+        <div className="text-center py-12">
+          <div className="animate-pulse text-gray-600">Loading your matches...</div>
+        </div>
+      ) : myMatches.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No matches yet</h3>
+          <p className="text-gray-600 mb-6">
+            Complete your profile and click "Generate New Matches" to get AI-powered recommendations
+          </p>
+          <button
+            onClick={generateMatches}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            🤖 Generate My Matches
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-semibold text-gray-900">
+              Your Personalized Matches ({myMatches.length})
+            </h4>
+            <div className="text-sm text-gray-600">
+              Sorted by AI match score
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" key={matchRenderKey}>
+            {myMatches.map((match, index) => (
+              <MatchCard
+                key={`${match.id || 'new'}-${match.match_score || 0}-${index}-${matchRenderKey}`}
+                match={match}
+                onApply={applyForInternship}
+                isApplied={match.status === 'applied'}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 
